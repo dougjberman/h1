@@ -153,12 +153,24 @@ macOS (Audio MIDI Setup, Bluetooth), iOS (an app's Bluetooth MIDI page, such as 
 anything else that speaks BLE-MIDI. Everything below works over it the same as over USB. One
 Bluetooth link at a time.
 
-**MIDI out,** over USB and Bluetooth, on channel 1:
+**MIDI out,** over USB and Bluetooth, on channel 1 unless the MIDI page says otherwise:
 
 - The notes of the keys, the arpeggiator and the sequencer, so a DAW can record what you play as
   MIDI, or h1 can play another synth.
 - CC 20 to 23 as the four knobs turn.
 - A note that came in over MIDI isn't sent back out, so a DAW that echoes its input doesn't loop.
+
+**The MIDI page** (hold **HOME**):
+
+| Knob | Setting | Values | What it does |
+|---|---|---|---|
+| 1 | CHAN | 1–16 | The channel notes and knob CCs go out on. MIDI in stays on any channel |
+| 2 | SEND | ALL, LIVE, OFF | ALL: the keys, the arpeggiator, the loop and the steps (as before). LIVE: what your hands play (the keys and the arpeggiator), not the loop's or the steps' playback. OFF: no notes or knobs, only the clock |
+| 3 | CLOCK | OFF, ON, +START | ON: MIDI clock at GLOBAL's tempo, 24 a beat, all the time, whether anything plays or not, so a looper, a delay or a tremolo pedal follows h1's tempo. It ignores SWING. +START: also Start when the loop or the steps start (a take, PLAY) and Stop when they stop |
+| 4 | BT | ON, OFF | Bluetooth MIDI. Off, the radio is quiet. It stays as you left it through a power-off |
+
+Changing CHAN or SEND sends all-notes-off where notes went before, so nothing hangs on the old channel.
+The clock goes out over USB and Bluetooth, ahead of the notes when the queue is busy.
 
 ## Hotkeys
 
@@ -172,16 +184,17 @@ Bluetooth link at a time.
 | REC / PLAY | Loop: REC arms a take, again closes it, again overdubs. PLAY stops and starts it, and a stopped loop is kept through a power-off. Step: REC turns step-write on and off, PLAY runs the pattern |
 | EDIT | Pins the knob strip on the home screen. Writing steps: leaves a rest |
 | OCT − / + | Octave, two each way. Press both for the middle octave |
+| hold OCT − and OCT + | Silence everything (HUSH), and send all-notes-off over MIDI |
 | MASTER | Volume of everything. A ring in the middle of the screen shows it while it turns, marked GLOBAL |
 | hold EDIT, turn MASTER or SELECT | Volume of the instrument in hand. The same ring, marked INSTRUMENT. MASTER sets it to where the knob stands, SELECT moves it a step a click. Holding EDIT alone shows where it stands |
 | hold SEQ | Swap LOOP and STEP |
 | hold GLO | Metronome: CLICK REC, CLICK ON, CLICK OFF |
 | SEQ + REC | LAYERS on and off (on by default): with it on, each take keeps its own instrument, algorithm and settings |
 | hold REC | Clear the loop or the pattern. With LAYERS on: clear what was recorded on the instrument in hand, and keep holding to three seconds to clear everything |
-| hold HOME | Silence everything |
+| hold HOME | The MIDI page: channel, what goes out, MIDI clock, Bluetooth. Hold HOME again, or tap it, to go back |
 | hold SAVE | Reset the algorithm in hand: its four knobs go back to how they came (everything else saves by itself) |
 | hold SAVE for two seconds | Reset this instrument: every algorithm's knobs, and its FX, ENV, LFO and ARP pages |
-| hold SAVE for four seconds | Reset every instrument, and the KEYS and GLOBAL pages. The sequencer and what it holds are left alone |
+| hold SAVE for four seconds | Reset every instrument, and the KEYS and GLOBAL pages. The sequencer and what it holds, and the MIDI page, are left alone |
 
 A button with a hold does its tap when you let go, so holding SEQ or GLO never opens the page, and
 holding EDIT never pins the strip.

@@ -11,6 +11,9 @@ void app_splash(void);                   /* instrument comes up */
  * 48 rows is enough, and the pool needs the rest for the framebuffer and the delay lines */
 #define APP_CANVAS_PX (240u * 48u)
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms */
+/* Bluetooth at power-on: as the MIDI page's BT was left (app_init has loaded the state by then) */
+int h1_bluetooth(void);
+#define APP_BLE_AT_BOOT (h1_bluetooth())
 
 /* the store: the saved state, the platform's panel calibration and the loop recorder's loop. Each object is an
  * A/B pair of 4 KiB sectors, written by the platform's storage (CRC, a torn write leaves the copy before in
