@@ -129,8 +129,8 @@ That is what the backup is for.
 - **M-VAVE FM-1 only.** Not the SMK-37.
 - **Both flash chips.** h1 saves and updates on the original Puya P25Q80 (JEDEC ID `0x856014`)
   and on the UC25HQ80 (`0xB36014`) fitted to units sold since autumn 2026.
-- USB audio out and USB MIDI in and out, or USB host for a keyboard. MIDI in over the TRS jack too. No MIDI out over TRS, and
-  no Bluetooth. See [USB audio and MIDI](#usb-audio-and-midi).
+- USB audio out, USB MIDI in and out (or USB host for a keyboard), and Bluetooth MIDI in and out with a
+  computer or a phone. MIDI in over the TRS jack too. No MIDI out over TRS. See [USB audio and MIDI](#usb-audio-and-midi).
 - A screen reader ([fm1-reader](https://github.com/charlesvestal/fm1-reader)) hears the
   instrument, the algorithm, the page and each control's value as it changes. It can't describe
   the pictures.
@@ -152,7 +152,12 @@ same as the speaker. Nothing plays back through it: the FM-1 isn't a sound card 
 - CC 20 to 23 turn the four knobs. CC 123 stops every note.
 - The loop and the step sequencer record the velocity and play it back.
 
-**MIDI out,** over USB only, on channel 1:
+**Bluetooth MIDI.** The FM-1 advertises as a Bluetooth MIDI device from power-on. Connect to it from
+macOS (Audio MIDI Setup, Bluetooth), iOS (an app's Bluetooth MIDI page, such as GarageBand's) or
+anything else that speaks BLE-MIDI. Everything below works over it the same as over USB. One
+Bluetooth link at a time.
+
+**MIDI out,** over USB and Bluetooth, on channel 1:
 
 - The notes of the keys, the arpeggiator and the sequencer, so a DAW can record what you play as
   MIDI, or h1 can play another synth.

@@ -18,7 +18,12 @@ vendored = ["hw/"]
 # FM1B_CPU2=0 ./build.sh makes the build without the second core (CI keeps both).
 cpu2 = true
 cpu2_fallback = true
-ble = false
+# Bluetooth MIDI with a computer or a phone, on fm1-base's own stack (Optimist's, MPL-2.0: nothing of JieLi's
+# linked, about 41-46 KB of flash and 10 KB of RAM). In and out, as USB's. Without pairing: macOS and iOS connect
+# anyway. Its diagnostics left out for the room. ./build.sh --no-ble: h1-usb.fwsc, without it.
+ble = true
+ble_stack = "own"
+ble_diag = false
 # OCT- and OCT+ held: the USB port as a host for a USB-MIDI keyboard or synth (powered hub or adapter: the FM-1 gives
 # the port no power). Boot is always a device, so a computer can always reach it after a restart.
 usb_host = true
