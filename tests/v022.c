@@ -326,9 +326,8 @@ int main(void)
     go(100);                                     /* passes MIDI through would return it, for ever) */
     CHECK(mo_count(0xB0, 123) == 0, "a CC 123 that came in is not sent back");
     nmo = 0;
-    h1_button(H1_BTN_HOME, 1);                   /* HOME held: HUSH, and the computer is told */
-    go(1000);
-    h1_button(H1_BTN_HOME, 0);
+    tap(H1_BTN_HOME);                            /* HOME tapped twice: HUSH, and the computer is told (in this */
+    tap(H1_BTN_HOME);                            /* fork HOME held is the MIDI page, OCT- + OCT+ the USB host) */
     go(100);
     CHECK(mo_count(0xB0, 123) == 1, "HUSH sends CC 123");
     h1_midi_out(0);

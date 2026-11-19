@@ -130,6 +130,7 @@ SMALL int h1_state_load(const void *blob, uint32_t size)
                         st.knob[i][a][j] = st.ip[i].knob0[j];
         }
         if (was >= 8u) {
+            bytes(st.midi, b + offsetof(H1Old, rsv), 4u);   /* (this fork's 0.2.2 kept the MIDI page there; 0.2.2's are zero) */
             bytes(st.step_vel, b + offsetof(H1Old, step_vel), (uint32_t)sizeof st.step_vel);
             bytes(st.step_lay, b + offsetof(H1Old, step_lay), (uint32_t)sizeof st.step_lay);
             bytes(st.layer, b + offsetof(H1Old, layer), (uint32_t)sizeof st.layer);
@@ -157,8 +158,6 @@ SMALL int h1_state_load(const void *blob, uint32_t size)
         if (i < NINST)
             inst_default(i);
     }
-    for (n = 0; n < sizeof st.rsv; n++)
-        st.rsv[n] = 0;
     st.ninst = NINST;
     st.version = H1_VERSION;
     if (st.inst >= NINST) st.inst = 0;
@@ -270,3 +269,4 @@ int h1_loop_quiet(void) { return eng_loop_quiet(); }
 int h1_loop_dirty(void) { return eng_loop_gen() != loop_saved_gen && !eng_loop_taking(); }
 void h1_loop_saved(void) { loop_saved_gen = loop_given_gen; }
 void h1_midi_out(void (*fn)(uint8_t status, uint8_t d1, uint8_t d2)) { eng_midi_fn = fn; }
+int h1_bluetooth(void) { return st.midi[3] == 0; }

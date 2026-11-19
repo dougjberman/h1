@@ -6,6 +6,16 @@
   JieLi libraries). MIDI out goes to USB and Bluetooth, each with its own queue; notes that came in over
   MIDI are still never sent back. The radio's address is kept in a new store object (0xC6000, under the loop's ring).
 - `./build.sh --no-ble` still builds the USB-only firmware (h1-usb.fwsc).
+- The MIDI page, behind HOME held: CHAN (the out channel), SEND (ALL, LIVE, OFF), CLOCK (OFF, ON, +START) and
+  BT (Bluetooth on or off, kept through a power-off). It lights the HOME square in the page map, and SELECT
+  reaches it after SEQ.
+- MIDI clock out at GLOBAL's tempo, 24 a quarter note, straight, always running while CLOCK is on, so gear that
+  only follows a clock (loopers, delay and tremolo pedals) has h1's tempo with nothing playing. +START adds
+  Start and Stop with the loop and the steps. Clock, Start and Stop go ahead of notes in a busy queue.
+- HUSH moves from HOME held to OCT- and OCT+ held together (a tap of both is still the middle octave), and its
+  all-notes-off goes out on the page's channel.
+- The page lives in five bytes the state kept spare (zero in every saved state so far), so there is no new
+  state version: a 0.2.2 state loads as h1's MIDI was, and 0.2.2 reads a newer one, ignoring the page.
 
 ## 0.3.0
 

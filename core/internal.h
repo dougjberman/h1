@@ -134,7 +134,10 @@ typedef struct H1State {
     InstParams ip[NSLOT];        /* (NSLOT: room for instruments to come, see H1_VERSION) */
     uint8_t ink[NSLOT][3];
     uint8_t ninst;               /* the instruments it was saved with */
-    uint8_t rsv[4];
+    uint8_t midi[4];             /* the MIDI page, in the four bytes version 9 kept spare (0.3.0 saves them as zero, which
+                                  * is h1's MIDI as it was): out channel 0..15 (shown 1..16), send (MS_ALL, MS_LIVE,
+                                  * MS_OFF), clock (MC_OFF, MC_CLOCK, MC_START), Bluetooth (0 on, 1 off). A version 8
+                                  * state from this fork kept them in H1Old.rsv[0..3] (h1_state_load). */
     uint8_t steps[NSTEP][NSNOTE];       /* the step pattern: up to eight notes a step, note + 1, 0 = none */
     uint8_t step_part[NSTEP][NSNOTE];   /* the part each of those notes was played on (PART), 0 = none kept */
     uint8_t knob[NSLOT][NALGO][4];      /* 0..100: the four live modulations of the home screen, each algorithm its own */
@@ -236,7 +239,9 @@ extern const InstDef *const insts[NINST];
 static inline int part_ok(uint32_t p) { return PART_SOME(p) && PART_ALGO(p) < NALGOS(PART_INST(p)); }
 
 /* ---- settings pages ------------------------------------------------------------------- */
-enum { PG_HOME, PG_FX, PG_KEYS, PG_ENV, PG_LFO, PG_GLO, PG_ARP, PG_SEQ, NPAGE };
+enum { PG_HOME, PG_FX, PG_KEYS, PG_ENV, PG_LFO, PG_GLO, PG_ARP, PG_SEQ, PG_MIDI, NPAGE };
+enum { MS_ALL, MS_LIVE, MS_OFF };                 /* st.midi[1]: what goes out */
+enum { MC_OFF, MC_CLOCK, MC_START };              /* st.midi[2]: MIDI clock out, and with MC_START Start/Stop */
 enum { PK_PCT, PK_ENUM, PK_INT };
 
 typedef struct ParamDef {
@@ -307,6 +312,8 @@ void eng_post_note(int on, int note, int vel, int from_midi);   /* a note, with 
                                                   * came in over MIDI (then it is not sent out again) */
 /* MIDI out (h1_midi_out): the engine calls it from inside the render, the UI from the main loop */
 extern void (*eng_midi_fn)(uint8_t status, uint8_t d1, uint8_t d2);
+void eng_midi_cc(uint8_t cc, uint8_t v);         /* a CC out on the MIDI page's channel, unless SEND is OFF */
+void eng_midi_all_off(void);                     /* CC 123 out on the page's channel (before the channel or SEND changes) */
 /* the loop, saved apart from the state (h1_loop): main loop */
 const uint8_t *eng_loop_blob(uint32_t *size);    /* the loop as saved, in place (h1_loop) */
 int eng_loop_load(const uint8_t *b, uint32_t n);
