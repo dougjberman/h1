@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (fork: Bluetooth MIDI)
+
+- Bluetooth MIDI in and out with a computer or a phone, on fm1-base's own Bluetooth stack (MPL-2.0, no
+  JieLi libraries). MIDI out goes to USB and Bluetooth, each with its own queue; notes that came in over
+  MIDI are still never sent back. The radio's address is kept in a new store object (0xDA000).
+- fm1-base's own fonts (only on its update, crash and safe-mode screens) stored trimmed and packed: the
+  same pixels in about 17 KB instead of 61, the room Bluetooth needs.
+- `./build.sh --no-ble` still builds the USB-only firmware (h1-usb.fwsc).
+
 ## 0.2.2
 
 Identity `FM-1_481000202`. From the first round of feedback after the launch.

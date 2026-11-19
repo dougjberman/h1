@@ -9,6 +9,8 @@ cd "$(dirname "$0")/.."
 ./build.sh --host
 out=app/build/host
 "$out/h1_host" tests/basic.txt "$out"
+# Bluetooth MIDI: in, out beside USB, nothing echoed, nothing sent once the link goes
+"$out/h1_host" tests/ble.txt "$out"
 # (that build has the second core, as the firmware does: the simulator runs its jobs at once, in order)
 # and the build without it: the same script
 FM1B_CPU2=0 ./build.sh --host
