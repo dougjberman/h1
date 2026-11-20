@@ -2,7 +2,15 @@
 
 ## 0.3.0
 
-Identity `FM-1_481000300`. Fixes from the GitHub issues so far; TILT and PLUNK join it.
+Identity `FM-1_481000300`. Two drum machines, and the fixes from the GitHub issues so far.
+
+**Instruments**
+- **TILT** (the fifteenth): electronic drum kits, 8-bit first, on a pinball table that is a drum kit. The
+  kick is the flippers, the snare and toms the bumpers, the crash fires the plunger. Knobs TUNE, DECAY,
+  BOUNCE, BITS.
+- **PLUNK** (the sixteenth): drum kits of recorded hits (gong, bells, darbuka, congas, timpani, anvil) on a
+  steel tongue drum in a garden in the rain. Knobs TUNE, DECAY, WIND, STORM.
+- A few of the pictures hide something for whoever plays them a certain way, some with a sound of their own.
 
 **USB**
 - Hold OCT− and OCT+ for a second: the USB port plays host to a USB-MIDI keyboard (#23), which needs its own
@@ -25,6 +33,10 @@ Identity `FM-1_481000300`. Fixes from the GitHub issues so far; TILT and PLUNK j
   stopped with PLAY, because a save erases flash and that stalls the sound; a loop left playing was lost.
   It now goes into flash erased ahead of time (at start, or while nothing sounds), a little at a time while it
   plays, so nothing is heard. A power-off in the middle of a save leaves the loop before it.
+  Saves go one after another into the space set aside, so a loop left playing has room for dozens of
+  takes before it next stops; a big loop (over about 600 notes) has room for three. Once it stops, the
+  space is cleared again.
+  The instrument in hand and its knobs are saved once nothing sounds, as before.
 
 **Sound**
 - LAVA has a ninth algorithm, **HOOVER** (#24): two PWM saws (a saw plus a copy of it swept along, the old
