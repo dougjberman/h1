@@ -240,7 +240,7 @@ static void midi_send(uint8_t status, uint8_t d1, uint8_t d2)
  * its own instead, in the data area: RING_SLOTS slots of RING_SECT sectors each. A save is a record: a header
  * page (magic, a sequence number, the blob's length and its CRC-32) and the blob after it, page-aligned. A
  * slot takes records one after another until it is full, so a loop that goes on playing has room for many
- * saves (a light loop dozens, the fullest loop about four), not one a slot. A save goes into erased space, a
+ * saves (a light loop dozens; a loop over about 600 notes, one a slot, so three), not one a slot. A save goes into erased space, a
  * 256-byte page a frame (a page program is short, no erase), with the header written last, so a record whose
  * header reads right holds a whole loop. The newest such record is the loop. A save given up part-way gets a
  * header marked dead, so the records after it can still be found. Slots are erased at start (before the

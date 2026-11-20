@@ -34,7 +34,8 @@ Identity `FM-1_481000300`. Two drum machines, and the fixes from the GitHub issu
   It now goes into flash erased ahead of time (at start, or while nothing sounds), a little at a time while it
   plays, so nothing is heard. A power-off in the middle of a save leaves the loop before it.
   Saves go one after another into the space set aside, so a loop left playing has room for dozens of
-  takes (a full 1,024-note loop, a few) before it next stops; once it stops, the space is cleared again.
+  takes before it next stops; a big loop (over about 600 notes) has room for three. Once it stops, the
+  space is cleared again.
   The instrument in hand and its knobs are saved once nothing sounds, as before.
 
 **Sound**
