@@ -33,7 +33,8 @@ static const char *const O_SHAPE[] = {"SINE", "TRI", "RAMP", "SQR", "STEP", "DRI
 static const char *const O_TARGET[] = {"PITCH", "K1", "K2", "K3", "K4", "LEVEL", "PAN"};
 static const char *const O_TIME[] = {"1/32", "1/16", "1/8T", "1/8", "3/16", "1/4", "3/8", "1/2"};
 static const char *const O_ROOT[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-static const char *const O_SCALE[] = {"CHROM", "MAJOR", "MINOR", "PENTA", "MPENT", "BLUES", "DORIAN", "WHOLE"};
+static const char *const O_SCALE[] = {"CHROM", "MAJOR", "MINOR", "PENTA", "MPENT", "BLUES", "DORIAN", "WHOLE",
+                                      "MIXO", "LYDIAN", "PHRYG", "LOCRIA", "ARABIC", "HARMIN", "MELMIN", "HIRAJ"};   /* synth.c SCALE_MASK */
 static const char *const O_ONOFF[] = {"OFF", "ON"};
 static const char *const O_BARS[] = {"1", "2", "4", "8", "16", "32", "64", "128"};
 static const char *const O_QUANT[] = {"FREE", "1/16", "1/8"};
@@ -50,7 +51,7 @@ const PageDef pages[NPAGE] = {
     {"HOME", {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
     {"FX", {{"ECHO", PK_PCT, 100, 0, 0, 0}, {"TIME", PK_ENUM, 7, 0, 0, O_TIME},
             {"SPACE", PK_PCT, 100, 0, 0, 0}, {"TONE", PK_PCT, 100, 0, -50, 0}}},
-    {"KEYS", {{"ROOT", PK_ENUM, 11, 0, 0, O_ROOT}, {"SCALE", PK_ENUM, 7, 0, 0, O_SCALE},
+    {"KEYS", {{"ROOT", PK_ENUM, 11, 0, 0, O_ROOT}, {"SCALE", PK_ENUM, 15, 0, 0, O_SCALE},
               {"GLIDE", PK_PCT, 100, 0, 0, 0}, {"HOLD", PK_ENUM, 1, 0, 0, O_ONOFF}}},
     {"ENV", {{"ATTACK", PK_PCT, 100, 0, 0, 0}, {"DECAY", PK_PCT, 100, 0, 0, 0},
              {"SUSTAIN", PK_PCT, 100, 0, 0, 0}, {"RELEASE", PK_PCT, 100, 0, 0, 0}}},

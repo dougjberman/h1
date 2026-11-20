@@ -2,6 +2,8 @@
 
 ## Unreleased (fork: Bluetooth MIDI)
 
+- (dougjberman's build) Eight more scales on the KEYS page: MIXO, LYDIAN, PHRYG, LOCRIA, ARABIC (double
+  harmonic), HARMIN, MELMIN and HIRAJ (Hirajoshi), after the first eight, so a saved scale keeps its number.
 - Bluetooth MIDI in and out with a computer or a phone, on fm1-base's own Bluetooth stack (MPL-2.0, no
   JieLi libraries). MIDI out goes to USB and Bluetooth, each with its own queue; notes that came in over
   MIDI are still never sent back. The radio's address is kept in a new store object (0xC6000, under the loop's ring).
