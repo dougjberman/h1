@@ -136,11 +136,16 @@ only with room kept for its note-off, and a note the full loop turns away moves 
 UI shows as LOOP FULL. The saved loop is the header and those events as they lie in RAM (`eng_loop_blob`,
 little-endian, no copy), and the device keeps them in a ring of its own in the data area (app.c `ring_step`,
 0xC8000..0xDBFFF: four slots of five sectors, `h1_loop` / `h1_loop_load`). A store save would erase
-first, and an erase stalls the sound for about 50 ms, so the loop goes into a slot that is already
-erased, a 256-byte page a frame, with a header (magic, sequence, length, CRC-32) written last. That
-happens as soon as no take is going in, while the loop plays (#39). The newest slot whose header reads
-right is the loop. Used slots are erased at start, before the sound, or once the loop is stopped and
-nothing sounds. A slot holds a blob of up to 20,224 bytes (`H1_LOOP_MAX` must stay under it). Before
+first, and an erase stalls the sound for about 50 ms, so a save is a record written into erased space,
+a 256-byte page a frame, with a header page (magic `H1LR`, sequence, length, CRC-32) written last. That
+happens as soon as no take is going in, while the loop plays (#39). A slot takes records one after
+another, page-aligned, so a loop that never stops has room for many saves, not one a slot (0.3.0's first
+builds lost the fourth take that way). The newest record whose header reads right is the loop. A save
+given up part-way (a take moved the events under it, or a write failed) gets a dead header (`H1LX`, how
+far it got), so the records after it are still found; a slot whose next header is blank but whose bytes
+after it are not (a power-off mid-save) takes no more until it is erased. Slots other than the loop's are
+erased at start, before the sound, or once the loop is stopped and nothing sounds. A record holds a blob
+of up to 20,224 bytes (`H1_LOOP_MAX` must stay under it). Before
 the ring the loop was store object `OBJ_LOOP` (0xDE000); it is read once, when the ring holds none. The step
 pattern is 64 steps of up to eight notes, on a 1/8, 1/16 or 1/32 grid, and is saved with the
 rest of the state. `eng_seq_info` gives the picture what it needs to draw the progress line or

@@ -33,9 +33,9 @@ Identity `FM-1_481000300`. Two drum machines, and the fixes from the GitHub issu
   stopped with PLAY, because a save erases flash and that stalls the sound; a loop left playing was lost.
   It now goes into flash erased ahead of time (at start, or while nothing sounds), a little at a time while it
   plays, so nothing is heard. A power-off in the middle of a save leaves the loop before it.
-  While it keeps playing there is room for three such saves; takes after the third are saved once the
-  loop is stopped with PLAY (the instrument in hand too), so stop it before switching off after a long
-  session of layering.
+  Saves go one after another into the space set aside, so a loop left playing has room for dozens of
+  takes (a full 1,024-note loop, a few) before it next stops; once it stops, the space is cleared again.
+  The instrument in hand and its knobs are saved once nothing sounds, as before.
 
 **Sound**
 - LAVA has a ninth algorithm, **HOOVER** (#24): two PWM saws (a saw plus a copy of it swept along, the old

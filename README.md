@@ -225,9 +225,9 @@ the instrument in hand. With LAYERS off, everything recorded plays on the instru
 The SEQ page's top line scrolls through the sequencer hotkeys and shows which way LAYERS is set.
 
 The loop is saved as soon as a take is closed, while it goes on playing, and comes back after a
-restart (power off a second or two after closing a take; a long loop takes a little longer). While it
-keeps playing there is room for three saves: after layering more takes than that, stop it with PLAY
-before switching off, and everything (the instrument in hand too) is kept. The step pattern and every instrument's settings save by themselves.
+restart (power off a second or two after closing a take; a long loop takes a little longer). A loop
+left playing has room for dozens of takes this way; stopping it with PLAY clears the space again. The
+instrument in hand and its knobs save once nothing is sounding. The step pattern and every instrument's settings save by themselves.
 
 In the simulator: <kbd>A</kbd>–<kbd>'</kbd> are the white keys from F and <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> <kbd>Y</kbd> <kbd>U</kbd> <kbd>O</kbd> <kbd>P</kbd> <kbd>[</kbd>
 the black keys. <kbd>Z</kbd> <kbd>X</kbd> change the octave, <kbd>←</kbd> <kbd>→</kbd> change the
