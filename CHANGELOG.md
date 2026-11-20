@@ -2,7 +2,15 @@
 
 ## 0.3.0
 
-Identity `FM-1_481000300`. Fixes from the GitHub issues so far; TILT and PLUNK join it.
+Identity `FM-1_481000300`. Two drum machines, and the fixes from the GitHub issues so far.
+
+**Instruments**
+- **TILT** (the fifteenth): electronic drum kits, 8-bit first, on a pinball table that is a drum kit. The
+  kick is the flippers, the snare and toms the bumpers, the crash fires the plunger. Knobs TUNE, DECAY,
+  BOUNCE, BITS.
+- **PLUNK** (the sixteenth): drum kits of recorded hits (gong, bells, darbuka, congas, timpani, anvil) on a
+  steel tongue drum in a garden in the rain. Knobs TUNE, DECAY, WIND, STORM.
+- A few of the pictures hide something for whoever plays them a certain way, some with a sound of their own.
 
 **USB**
 - Hold OCT− and OCT+ for a second: the USB port plays host to a USB-MIDI keyboard (#23), which needs its own

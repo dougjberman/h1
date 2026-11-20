@@ -26,6 +26,25 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          sparse-checkout: |
+            CHANGELOG.md
+            dist
+      - name: The tag, the changelog and the simulator's dist/h1.rfm1 name the same version
+        if: startsWith(github.ref, 'refs/tags/')
+        # 0.2.2 went out with dist/h1.rfm1 still at 0.2.1 (#46): the rebuild was a step after the tag that
+        # nobody took. Now it comes before the tag, and a tag that disagrees with either file builds nothing.
+        run: |
+          set -euo pipefail
+          version=${GITHUB_REF_NAME#v}
+          top=$(sed -n 's/^## \([0-9][0-9.]*\).*/\1/p' CHANGELOG.md | head -1)
+          rfm1=$(grep -a -o '"version": "[^"]*"' dist/h1.rfm1 | head -1 | sed 's/.*: "\(.*\)"/\1/')
+          echo "tag $version, CHANGELOG $top, dist/h1.rfm1 $rfm1"
+          [[ "${version%%-*}" == "$top" ]] || { echo "CHANGELOG.md's top section is $top, not $version"; exit 1; }
+          # (a pre-release, vX.Y.Z-rc1, may leave the simulator on the last release)
+          [[ "$version" == *-* || "$rfm1" == "$version" ]] || { echo "dist/h1.rfm1 is $rfm1: run tools/build_rfm1.sh $version and commit it first"; exit 1; }
       - name: Prepare a draft without replacing a public release
         env:
           GH_TOKEN: ${{ github.token }}

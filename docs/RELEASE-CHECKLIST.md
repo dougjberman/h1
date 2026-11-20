@@ -123,8 +123,12 @@ P25Q80 (`0x856014`). A firmware that only knows the Puya can't save or update on
 
 - [ ] Remove the "Status: no release yet" note from the README's Install section.
 - [ ] Add the repository topics: `m-vave`, `fm-1`, `firmware`, `synthesizer`.
+- [ ] Before the tag, on the commit to be tagged: `tools/build_rfm1.sh X.Y.Z` (the browser simulator's
+      `dist/h1.rfm1`), and `python3 tools/hub_card.py` when an instrument came or went. Commit both.
+      The release workflow refuses a tag whose version differs from `CHANGELOG.md`'s top section or
+      from `dist/h1.rfm1`'s (0.2.2 went out with the simulator still on 0.2.1, #46).
 - [ ] Merge to `main`. `fmhub.json` has to be in the root of the default branch.
-- [ ] Tag: `git tag vX.Y.Z && git push origin vX.Y.Z`. The workflow builds `h1-X.Y.Z.fwsc`
+- [ ] Tag: `git tag vX.Y.Z && git push origin vX.Y.Z` (the `v` and three numbers: `v0.3.0`). The workflow builds `h1-X.Y.Z.fwsc`
       (identity `FM-1_481XXYYZZ`: v0.2.0 is `FM-1_481000200`), tests, attests and publishes the
       release.
 - [ ] Install the released `h1-X.Y.Z.fwsc` once on the FM-1, as a last check of the exact file.
