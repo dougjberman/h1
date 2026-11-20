@@ -34,6 +34,10 @@ ASAN_OPTIONS=detect_leaks=0 build/h1v022
 "${CC:-cc}" -std=c99 -O1 -g -ffp-contract=off -fsanitize=address,undefined -fno-sanitize-recover=all -w \
     core/*.c tests/midi.c -o build/h1midi -lm
 ASAN_OPTIONS=detect_leaks=0 build/h1midi
+# the KEYS page's scales, each against its notes written out apart from the masks
+"${CC:-cc}" -std=c99 -O1 -g -ffp-contract=off -fsanitize=address,undefined -fno-sanitize-recover=all -w \
+    core/*.c tests/scales.c -o build/h1scales -lm
+ASAN_OPTIONS=detect_leaks=0 build/h1scales
 # two cores sound the same as one, to the bit (tests/cores.c: the second core is a thread)
 "${CC:-cc}" -std=c11 -O2 -ffp-contract=off -w core/*.c tests/cores.c -o build/h1cores -lm -lpthread
 build/h1cores > build/cores1.txt

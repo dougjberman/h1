@@ -227,11 +227,21 @@ static const uint16_t SCALE_MASK[] = {
     0x4E9,      /* BLUES */
     0x6AD,      /* DORIAN */
     0x555,      /* WHOLE */
+    /* (added in this fork: after the first eight, so a saved scale keeps its number) */
+    0x6B5,      /* MIXO    1 0 1 0 1 1 0 1 0 1 1 0  Mixolydian */
+    0xAD5,      /* LYDIAN  1 0 1 0 1 0 1 1 0 1 0 1  Lydian */
+    0x5AB,      /* PHRYG   1 1 0 1 0 1 0 1 1 0 1 0  Phrygian */
+    0x56B,      /* LOCRIA  1 1 0 1 0 1 1 0 1 0 1 0  Locrian */
+    0x9B3,      /* ARABIC  1 1 0 0 1 1 0 1 1 0 0 1  double harmonic (Byzantine, Arabic) */
+    0x9AD,      /* HARMIN  1 0 1 1 0 1 0 1 1 0 0 1  harmonic minor */
+    0xAAD,      /* MELMIN  1 0 1 1 0 1 0 1 0 1 0 1  melodic minor (ascending) */
+    0x18D,      /* HIRAJ   1 0 1 1 0 0 0 1 1 0 0 0  Hirajoshi */
 };
+#define NSCALE ((int)(sizeof SCALE_MASK / sizeof SCALE_MASK[0]))
 
 int scale_snap(int note)
 {
-    uint32_t mask = SCALE_MASK[st.keys[1] < 8 ? st.keys[1] : 0];
+    uint32_t mask = SCALE_MASK[st.keys[1] < NSCALE ? st.keys[1] : 0];
     int root = st.keys[0] % 12, i;
     for (i = 0; i < 12; i++) {
         int pc = ((note - i - root) % 12 + 12) % 12;
