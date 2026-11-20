@@ -14,7 +14,7 @@
 - MIDI clock out at GLOBAL's tempo, 24 a quarter note, straight, always running while CLOCK is on, so gear that
   only follows a clock (loopers, delay and tremolo pedals) has h1's tempo with nothing playing. +START adds
   Start and Stop with the loop and the steps. Clock, Start and Stop go ahead of notes in a busy queue.
-- HUSH moves from HOME held to OCT- and OCT+ held together (a tap of both is still the middle octave), and its
+- HUSH moves from HOME held to HOME tapped twice (OCT- and OCT+ held is 0.3.0's USB host), and its
   all-notes-off goes out on the page's channel.
 - The page lives in five bytes the state kept spare (zero in every saved state so far), so there is no new
   state version: a 0.2.2 state loads as h1's MIDI was, and 0.2.2 reads a newer one, ignoring the page.

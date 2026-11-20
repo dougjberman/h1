@@ -236,7 +236,7 @@ int main(void)
         memset(blob6, 0xFF, sizeof blob6);
         memcpy(blob6 + 1, blob, offsetof(H1Old, ip) + H1_OLD_NINST * sizeof(InstParams));
         memcpy(blob6 + 1 + offsetof(H1Old, ink), s->ink, H1_OLD_NINST * 3u);
-        memcpy(blob6 + 1 + offsetof(H1Old, rsv), s->rsv, sizeof s->rsv);
+        memcpy(blob6 + 1 + offsetof(H1Old, rsv), s->midi, sizeof s->midi);   /* (the fork's MIDI page: the four bytes 0.3.0 kept spare) */
         memcpy(blob6 + 1 + offsetof(H1Old, steps), s->steps, sizeof s->steps);
         memcpy(blob6 + 1 + offsetof(H1Old, step_part), s->step_part, sizeof s->step_part);
         for (i = 0; i < (int)H1_OLD_NINST; i++)               /* (eight algorithms to an instrument then) */

@@ -120,6 +120,7 @@ int main(void)
     hold(H1_BTN_HOME);
     CHECK(ui_page() == PG_MIDI, "HOME held opens it from another page too");
     tap(H1_BTN_HOME);
+    go(600);                                     /* (well after the last tap of HOME) */
     nmo = 0;
     tap(H1_BTN_HOME);                            /* HOME twice: HUSH */
     tap(H1_BTN_HOME);
@@ -132,6 +133,8 @@ int main(void)
     go(600);
     CHECK(mo_count(0xB0, 123) == 0, "two taps of HOME apart are not HUSH");
     tap(H1_BTN_GLO);
+    go(600);
+    nmo = 0;
     hold(H1_BTN_HOME);                           /* HOME held then let go: the page, no HUSH and no tap */
     go(100);
     CHECK(ui_page() == PG_MIDI && mo_count(0xB0, 123) == 0, "HOME held opens the page and is not a tap");
