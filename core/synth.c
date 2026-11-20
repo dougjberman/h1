@@ -119,9 +119,12 @@ static int midi_send_ok(int src)
     uint8_t s = st.midi[1];
     return s == MS_ALL || (s == MS_LIVE && src == MO_LIVE);
 }
+static void clock_transport(void);
 static void mout(int on, int note, int vel, int src)
 {
     void (*fn)(uint8_t, uint8_t, uint8_t) = eng_midi_fn;
+    if (fn)
+        clock_transport();                       /* (a Start that is due goes ahead of the notes that start with it) */
     if (fn && note >= 0 && note < 128 && midi_send_ok(src))
         fn((uint8_t)((on ? 0x90u : 0x80u) | midi_ch()), (uint8_t)note, (uint8_t)(on ? iclamp(vel, 1, 127) : 0));
 }
@@ -146,6 +149,7 @@ void eng_midi_all_off(void)
  * slot (app.c). In ticks of 96 a quarter: a clock every 4. ------------------------------------------------ */
 static f32 clk_ph;                               /* ticks since the last clock, 0..4 */
 static int clk_on, clk_run;                      /* the clock is going; the transport as last sent (+START) */
+static int clk_started;                          /* a Start (and its downbeat clock) went out in this control block */
 static int transport_running(void);
 static void rt_out(uint8_t b)
 {
@@ -153,26 +157,44 @@ static void rt_out(uint8_t b)
     if (fn)
         fn(b, 0u, 0u);
 }
-static void clock_tick(f32 dticks)
+/* +START: Start when the loop or the steps have just started, Stop when they have stopped. Called before any note
+ * goes out (mout) and at every control block (clock_tick), so a Start is ahead of the notes it starts: the loop's
+ * first notes from PLAY, or the key that begins a take (the take is running before its note is routed). */
+static void clock_transport(void)
 {
-    int mode = st.midi[2] <= MC_START ? st.midi[2] : MC_OFF, run;
-    if (mode == MC_OFF || !eng_midi_fn) {
-        if (clk_run && eng_midi_fn)
-            rt_out(0xFC);                        /* (turned off while the transport ran: the follower stops too) */
-        clk_on = clk_run = 0;
+    int run;
+    if (!eng_midi_fn || st.midi[2] != MC_START)
         return;
-    }
-    run = mode == MC_START && transport_running();
-    if (run && !clk_run) {                       /* Start, and its downbeat: the next clock is beat one */
+    run = transport_running();
+    if (run == clk_run)
+        return;
+    clk_run = run;
+    if (run) {                                   /* Start, and its downbeat: the next clock is beat one */
         rt_out(0xFA);
         rt_out(0xF8);
         clk_ph = 0.0f;
-        clk_on = clk_run = 1;
+        clk_on = clk_started = 1;
+    } else
+        rt_out(0xFC);
+}
+static void clock_tick(f32 dticks)
+{
+    int mode = st.midi[2] <= MC_START ? st.midi[2] : MC_OFF;
+    if (mode == MC_OFF || !eng_midi_fn) {
+        if (clk_run && eng_midi_fn)
+            rt_out(0xFC);                        /* (turned off while the transport ran: the follower stops too) */
+        clk_on = clk_run = clk_started = 0;
         return;
     }
-    if (!run && clk_run)
+    if (mode != MC_START && clk_run) {           /* +START back to ON while it ran: Stop, and the clock goes on */
         rt_out(0xFC);
-    clk_run = run;
+        clk_run = 0;
+    }
+    clock_transport();
+    if (clk_started) {                           /* this block's clock was the Start's downbeat */
+        clk_started = 0;
+        return;
+    }
     if (!clk_on) {                               /* switched on: the first clock now */
         clk_on = 1;
         clk_ph = 0.0f;
@@ -1876,7 +1898,7 @@ void eng_init(uint32_t sample_rate)
     loop_state = LOOP_EMPTY;
     nlev = 0;
     loop_pos = 0.0f;
-    clk_on = clk_run = 0;                       /* (the clock starts again with its first clock) */
+    clk_on = clk_run = clk_started = 0;         /* (the clock starts again with its first clock) */
     clk_ph = 0.0f;
     loop_held[0] = loop_held[1] = loop_held[2] = loop_held[3] = 0;
     latched[0] = latched[1] = latched[2] = latched[3] = 0;

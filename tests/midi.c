@@ -179,7 +179,7 @@ int main(void)
     CHECK(mo_count(0xFA, -1) == 1, "a take: one Start");
     CHECK(a >= 0 && a + 1 < nmo && mo[a + 1][0] == 0xF8u, "and its downbeat clock right after it");
     b = mo_find(0x90, 0);
-    CHECK(a >= 0 && b >= 0 && mo_at[a] == mo_at[b], "the Start in the same control block as the take's first note");
+    CHECK(a >= 0 && b > a, "the Start ahead of the take's first note");
     CHECK(mo_count(0xFC, -1) == 0, "no Stop while the loop goes round");
     tap(H1_BTN_PLAY);                            /* stop */
     go(500);
@@ -187,9 +187,13 @@ int main(void)
     a = nmo;
     go(1000);
     CHECK(clocks(a, nmo, 90.0, &worst) >= 35, "the clock runs on after the Stop");
-    tap(H1_BTN_PLAY);                            /* again */
+    b = nmo;
+    tap(H1_BTN_PLAY);                            /* again: the loop's first notes come with it */
     go(500);
     CHECK(mo_count(0xFA, -1) == 2, "PLAY: Start again");
+    a = mo_find(0xFA, b);
+    CHECK(a >= 0 && mo_find(0x90, b) > a, "and ahead of the loop's first notes");
+    CHECK(a >= 0 && a + 1 < nmo && mo[a + 1][0] == 0xF8u, "its downbeat clock right after it");
     midi_page();
     h1_control_set(H1_ENC_K3, MC_OFF);           /* off while it runs */
     go(200);
