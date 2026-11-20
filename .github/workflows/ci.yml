@@ -71,6 +71,50 @@ jobs:
           done
           test -d ~/fw-AC79_AIoT_SDK
           echo "AC79_SDK=$HOME/fw-AC79_AIoT_SDK" >> "$GITHUB_ENV"
+      # (dougjberman's fork, a measurement only) the flash each choice takes, as notes on the run
+      - name: Flash sizes (fork measurement)
+        continue-on-error: true
+        run: |
+          set +e
+          report() {
+            name="$1"; shift
+            "$@" > /tmp/b.log 2>&1; rc=$?
+            line=$(grep -E 'image [0-9]+ B|exceeds|error|Error|undefined' /tmp/b.log | head -6 | tr '\n' ' ' | cut -c1-900)
+            echo "::notice title=${name} (exit ${rc})::${line}"
+          }
+          cp app/fm1.toml /tmp/fm1.toml
+          report "ble + usb_host" ./build.sh
+          sed -i 's/^usb_host = true/usb_host = false/' app/fm1.toml
+          report "ble, no usb_host" ./build.sh
+          cp /tmp/fm1.toml app/fm1.toml
+          report "no ble (usb_host)" ./build.sh --no-ble
+          elf=app/build/h1-usb.elf
+          if [ -f "$elf" ]; then
+            "$JIELI_TOOLCHAIN/common/bin/objdump" -t "$elf" > /tmp/syms.txt
+            python3 - <<'PY'
+          import re, collections
+          rows = []
+          for l in open('/tmp/syms.txt'):
+              m = re.match(r'^([0-9a-f]{8})\s+.{7}\s+(\S+)\s+([0-9a-f]{8})\s+(\S+)$', l.strip())
+              if m and m.group(2) in ('.text', '.rodata', '.data', '.ram_text') and int(m.group(3), 16) > 0:
+                  rows.append((int(m.group(3), 16), m.group(2), m.group(4)))
+          rows.sort(reverse=True)
+          top = '%0A'.join(f'{n} {sec} {name}' for n, sec, name in rows[:40])
+          print(f'::notice title=largest symbols (no ble)::{top}')
+          groups = collections.Counter()
+          for n, sec, name in rows:
+              k = ('smp' if name.startswith(('smp_', 'SMP', 'bank')) else
+                   'plunk' if 'plunk' in name.lower() else
+                   'tilt' if 'tilt' in name.lower() else
+                   'usbh' if 'usbh' in name.lower() or 'usb_host' in name.lower() else
+                   'font' if 'font' in name.lower() or 'glyph' in name.lower() else
+                   name.split('_')[0])
+              groups[k] += n
+          g = '%0A'.join(f'{n} {k}' for k, n in groups.most_common(40))
+          print(f'::notice title=bytes by name prefix (no ble)::{g}')
+          PY
+          fi
+          true
       - name: Build the firmware (a development build)
         run: ./build.sh
       # for reading a crash record: its pc and rets are addresses in this table
