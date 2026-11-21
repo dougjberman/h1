@@ -1102,6 +1102,35 @@ static void draw_seq_mark(void)
     }
 }
 
+/* A line of hints under a page's title, more than it holds: they go by as a marquee, still for a moment when the page
+ * opens, then round and round (the SEQ page's, and in this fork the MIDI page's). */
+static SMALL void hint_marquee(const char *const *hint, int nh, f32 intro)
+{
+    f32 wd[4], total = 0.0f, off, x;
+    int i, j;
+    if (nh > 4)
+        nh = 4;
+    for (i = 0; i < nh; i++) {
+        wd[i] = g_text_w(hint[i], 8.0f) + 22.0f;
+        total += wd[i];
+    }
+    off = maxf(0.0f, page_t - 1.4f) * 26.0f;
+    off -= total * (f32)ifloor(off / total);
+    x = 13.0f - off;
+    for (j = 0; j < 2 * nh; j++) {               /* twice round: the line never shows its end */
+        i = j % nh;
+        if (x + wd[i] > 0.0f && x < 240.0f) {
+            g_text(x, 43.0f, hint[i], 8.0f, 1.0f, 0.5f * intro, 0);
+            g_disc(x + wd[i] - 11.0f, 47.0f, 1.2f, 0.35f * intro);
+        }
+        x += wd[i];
+    }
+    g_mode(G_PAINT);                             /* a margin each side, as the page's other text keeps */
+    g_rect(0.0f, 40.0f, 11.0f, 14.0f, 0.0f);
+    g_rect(229.0f, 40.0f, 11.0f, 14.0f, 0.0f);
+    g_mode(G_MAX);
+}
+
 static void draw_page(void)
 {
     const PageDef *pd = &pages[page];
@@ -1113,8 +1142,10 @@ static void draw_page(void)
         put_s(put_s(buf, "HOLD GLO: "), O_CLICK[st.seq[5] < 3 ? st.seq[5] : 0]);
         g_text(13.0f, 43.0f, buf, 8.0f, 1.0f, 0.5f * intro, 0);
     }
-    if (page == PG_MIDI)                         /* where HUSH went when HOME's hold became this page */
-        g_text(13.0f, 43.0f, "TAP HOME TWICE: HUSH", 8.0f, 1.0f, 0.5f * intro, 0);
+    if (page == PG_MIDI) {                       /* the MIDI IN page next door, and where HUSH went */
+        static const char *const hint[2] = {"TURN SELECT: MIDI IN SETTINGS", "TAP HOME TWICE: HUSH"};
+        hint_marquee(hint, 2, intro);
+    }
     if (page == PG_MIDI_IN) {                    /* what the clock in is doing */
         f32 b = eng_ext_bpm();
         if (!MI_FOLLOW())
@@ -1133,33 +1164,13 @@ static void draw_page(void)
     }
     if (page == PG_SEQ) {
         /* The sequencer's buttons do three things held or paired, more than the line holds: they go by
-         * as a marquee, still for a moment when the page opens, then round and round. */
+         * as a marquee (hint_marquee), still for a moment when the page opens, then round and round. */
         const char *hint[4];
-        f32 wd[4], total = 0.0f, off, x;
-        int nh = st.seq[6] ? 4 : 3;
         hint[0] = "HOLD SEQ: LOOP / STEP";
         hint[1] = st.seq[6] ? "SEQ + REC: LAYERS ON" : "SEQ + REC: LAYERS OFF";
         hint[2] = st.seq[6] ? "HOLD REC: CLEAR PART, THEN ALL" : "HOLD REC: CLEAR";
         hint[3] = "NEW INSTRUMENT, REC: A NEW LAYER";
-        for (i = 0; i < nh; i++) {
-            wd[i] = g_text_w(hint[i], 8.0f) + 22.0f;
-            total += wd[i];
-        }
-        off = maxf(0.0f, page_t - 1.4f) * 26.0f;
-        off -= total * (f32)ifloor(off / total);
-        x = 13.0f - off;
-        for (j = 0; j < 2 * nh; j++) {           /* twice round: the line never shows its end */
-            i = j % nh;
-            if (x + wd[i] > 0.0f && x < 240.0f) {
-                g_text(x, 43.0f, hint[i], 8.0f, 1.0f, 0.5f * intro, 0);
-                g_disc(x + wd[i] - 11.0f, 47.0f, 1.2f, 0.35f * intro);
-            }
-            x += wd[i];
-        }
-        g_mode(G_PAINT);                         /* a margin each side, as the page's other text keeps */
-        g_rect(0.0f, 40.0f, 11.0f, 14.0f, 0.0f);
-        g_rect(229.0f, 40.0f, 11.0f, 14.0f, 0.0f);
-        g_mode(G_MAX);
+        hint_marquee(hint, st.seq[6] ? 4 : 3, intro);
     }
     for (i = 1; i < NPAGE; i++)                  /* the panel's two rows of six: a square where a button has a page */
         rsquare(165.0f + (f32)PAGE_AT[i][0] * 11.0f, 12.0f + (f32)PAGE_AT[i][1] * 11.0f, 8.0f, i == page ? 1.0f : 0.3f);
