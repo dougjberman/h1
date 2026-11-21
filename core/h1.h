@@ -30,6 +30,12 @@ void h1_midi(uint8_t status, uint8_t d1, uint8_t d2);   /* MIDI in: notes with t
  * turn, and CC 123 on a hush. Never what came in over MIDI. The notes are sent from inside h1_render, the
  * knobs from h1_encoder (the main loop): fn must be safe from both. NULL: nothing is sent (the default). */
 void h1_midi_out(void (*fn)(uint8_t status, uint8_t d1, uint8_t d2));
+/* MIDI in with how long ago it landed (a port that knows: plat_midi_in_t24), so an incoming clock can be followed to
+ * the millisecond. Notes and controllers are taken as the MIDI IN page's NOTES says; h1_midi is this at age 0. */
+void h1_midi_at(uint8_t status, uint8_t d1, uint8_t d2, uint32_t age_us);
+/* the MIDI IN page's THRU: 1 when an incoming clock, Start, Continue or Stop is to be passed on (the port sends it on
+ * to its other links, never back where it came from) */
+int h1_midi_thru(void);
 /* the MIDI page's BT: 1 for Bluetooth on (the default), 0 off. A port with a radio follows it (app.c) */
 int h1_bluetooth(void);
 void h1_master(int level);                       /* where the volume knob stands, 0..1000, every frame. The

@@ -150,6 +150,39 @@ void eng_midi_all_off(void)
         fn((uint8_t)(0xB0u | midi_ch()), 123u, 0u);
 }
 
+/* ---- MIDI clock in (the MIDI IN page's CLOCK and START) ------------------------------------------------------
+ * Each clock comes from the main loop with how long ago it landed (app.c: plat_midi_in_t24, within 0.05 ms over USB
+ * and TRS with fm1.toml midi_stamp, the sender's own time over Bluetooth with ble_midi_time), and is taken in the
+ * next control block. The tempo is the last beat's clocks (up to 24 gaps) eased in; the phase is a counter that moves
+ * with the sequencers (ext_ph, 4 ticks a clock), and at each clock the sequencers' rate is nudged by how far it
+ * is off, up to 6 % (more than half a beat off: it jumps). With START, a Start or Continue starts the loop or the
+ * steps from the top on the next clock, the ticks since that clock landed made up at once; a Stop stops them. No clock
+ * for half a second: h1's own tempo again. SWING and the knobs are untouched; only the tempo is the clock's. */
+#define EXT_HIST 25
+/* Times are frames, counted in a uint32_t (ext_fr): exact, where run_time's float drifts by its rounding. The phase is
+ * kept as a difference, ext_ph: the sequencers' ticks since the last clock less the clocks' 4 each, so it stays a
+ * few ticks either way and keeps its fraction (a running count of ticks did not: rounded at every block, it crept
+ * ahead of the sequencers by a tick a minute). */
+static uint32_t ext_fr, ext_fr_blk;              /* frames rendered; at this control block's start */
+static uint32_t ext_t[EXT_HIST];                 /* the last clocks' landing times, frames */
+static int ext_hn, ext_hi;
+static int ext_on;                               /* following: a clock within the last half second */
+static f32 ext_bpm_v;                            /* the tempo followed */
+static f32 ext_ph;                               /* the sequencers' ticks since the last clock landed, less 4 a clock */
+static f32 ext_corr;                             /* the sequencers' rate nudge, -0.06..0.06 */
+static uint32_t ext_last;                        /* the last clock's landing time, frames */
+static int ext_start_due;                        /* a Start or Continue: the transport starts on the next clock */
+static f32 ext_catch;                            /* ticks owed to the sequencers once they start */
+static volatile f32 ext_pub;                     /* for the main loop: the tempo while following, else 0 */
+f32 eng_ext_bpm(void) { return ext_pub; }
+void eng_ext_post(int what, uint32_t age_us)
+{
+    uint32_t q = age_us / 8u;
+    post(((uint32_t)EV_EXT << 8) | ((uint32_t)what & 255u) | (q > 65535u ? 65535u : q) << 16);
+}
+/* the tempo everything runs at: the clock's while following, else GLOBAL's */
+static f32 tempo(void) { return ext_on ? ext_bpm_v : (f32)iclamp(st.glo[0], 40, 240); }
+
 /* ---- MIDI clock out (the MIDI page's CLOCK): 24 a quarter note at GLOBAL's tempo, straight (SWING moves notes,
  * not the clock), from the control block (0.73 ms), so a pedal or a drum machine that only follows a clock has
  * h1's tempo whether anything plays or not. With +START the transport too: Start when the loop or the steps
@@ -172,7 +205,7 @@ static void rt_out(uint8_t b)
 static void clock_transport(void)
 {
     int run;
-    if (!eng_midi_fn || st.midi[2] != MC_START)
+    if (!eng_midi_fn || st.midi[2] != MC_START || MI_FOLLOW())
         return;
     run = transport_running();
     if (run == clk_run)
@@ -188,7 +221,8 @@ static void clock_transport(void)
 }
 static void clock_tick(f32 dticks)
 {
-    int mode = st.midi[2] <= MC_START ? st.midi[2] : MC_OFF;
+    int mode = st.midi[2] <= MC_START && !MI_FOLLOW() ? st.midi[2] : MC_OFF;   /* (following a clock: none of h1's own;
+                                                  * THRU passes the one it follows) */
     if (mode == MC_OFF || !eng_midi_fn) {
         if (clk_run && eng_midi_fn)
             rt_out(0xFC);                        /* (turned off while the transport ran: the follower stops too) */
@@ -1232,6 +1266,100 @@ static void panic(int from_midi)
         }
 }
 
+/* ---- the transport from MIDI (the MIDI IN page's START) ---------------------------------------------------------- */
+static void transport_start(void)                /* the loop or the steps from the top: Start, or Continue */
+{
+    if (st.seq[0] == SEQ_STEP) {
+        if (step_playing)
+            step_stop();
+        step_playing = 1;
+        step_at = 0;
+        step_acc = 0.0f;
+        click_at = -1;
+        arp_acc = 1e9f;
+        step_fire(0, step_len(0) * 0.85f);
+        return;
+    }
+    if (loop_state == LOOP_PLAY || loop_state == LOOP_DUB)
+        loop_stop();                             /* (playing already: from the top again) */
+    if (loop_state == LOOP_IDLE) {
+        int i;
+        for (i = 0; i < nlev; i++)
+            lev[i].on &= 0x7F;
+        loop_pos = 0.0f;
+        click_at = -1;
+        arp_acc = 1e9f;
+        loop_state = LOOP_PLAY;
+    }
+}
+static void transport_stop(void)
+{
+    if (st.seq[0] == SEQ_STEP) {
+        if (step_playing)
+            step_stop();
+    } else if (loop_state == LOOP_REC || loop_state == LOOP_PLAY || loop_state == LOOP_DUB)
+        loop_stop();
+}
+
+/* a clock, a Start, a Continue or a Stop from MIDI, landed age seconds before it was posted */
+static void ext_event(int what, f32 age)
+{
+    uint32_t t = ext_fr_blk - (uint32_t)(age * SR + 0.5f);   /* when it landed, frames */
+    f32 rate;
+    if (what != EXT_CLOCK) {
+        if (!MI_START())
+            return;
+        if (what == EXT_STOP) {
+            ext_start_due = 0;
+            transport_stop();
+        } else if (MI_FOLLOW())
+            ext_start_due = 1;                   /* on the next clock, which is beat one */
+        else
+            transport_start();                   /* (not following the clock: at once) */
+        return;
+    }
+    if (!MI_FOLLOW())
+        return;
+    if (ext_bpm_v < 20.0f)
+        ext_bpm_v = (f32)iclamp(st.glo[0], 40, 240);
+    rate = ext_bpm_v * 1.6f;                     /* ticks a second */
+    if (!ext_on || (f32)(t - ext_last) > SR * 0.5f) {   /* the first clock, or the first after a gap: lock here */
+        ext_on = 1;
+        ext_hn = ext_hi = 0;
+        ext_corr = 0.0f;
+        ext_ph = age * rate;                     /* (the sequencers' ticks since it landed) */
+    } else {
+        f32 err;
+        ext_ph -= 4.0f;                          /* this clock is 4 ticks on from the last */
+        err = age * rate - ext_ph;               /* where the phase should be now, less where it is */
+        if (err > 48.0f || err < -48.0f) {
+            ext_ph += err;                       /* half a beat off or more: a jump, not a drift */
+            ext_corr = 0.0f;
+        } else
+            ext_corr = err * 0.015f < -0.06f ? -0.06f : err * 0.015f > 0.06f ? 0.06f : err * 0.015f;
+    }
+    ext_last = t;
+    ext_t[ext_hi] = t;
+    ext_hi = (ext_hi + 1) % EXT_HIST;
+    if (ext_hn < EXT_HIST)
+        ext_hn++;
+    if (ext_hn >= 3) {                           /* the tempo: the clocks of the last beat, eased in */
+        uint32_t span = t - ext_t[(ext_hi - ext_hn + 2 * EXT_HIST) % EXT_HIST];
+        if (span) {
+            f32 b = 60.0f * SR * (f32)(ext_hn - 1) / (24.0f * (f32)span);
+            if (b >= 20.0f && b <= 320.0f)
+                ext_bpm_v += (b - ext_bpm_v) * (ext_hn < EXT_HIST ? 0.6f : 0.25f);
+        }
+    }
+    if (ext_start_due) {                         /* Start: this clock is the top of the loop or the pattern */
+        ext_start_due = 0;
+        transport_start();
+        ext_ph = age * rate;
+        ext_catch = age * rate;
+        ext_corr = 0.0f;
+    }
+}
+
 static void handle(uint32_t e)
 {
     int type = (int)(e >> 8 & 255u), a = (int)(e & 255u), vel = (int)(e >> 16 & 127u), midi = (int)(e >> 23 & 1u);
@@ -1240,6 +1368,7 @@ static void handle(uint32_t e)
     case EV_NOTE_OFF: live_note(a & 127, 0, 0, midi); break;
     case EV_PANIC: panic(a & 1); cue_p = 0; break;
     case EV_CUE: cue_start(a); break;
+    case EV_EXT: ext_event(a, (f32)(e >> 16) * 8e-6f); break;
     case EV_UNLATCH: unlatch(); phys_down = 0; break;
     case EV_INST:
         if (a < NINST && a != cur_i) {
@@ -1535,7 +1664,7 @@ static void inst_touch(int i)
     r->b.isr = ISR;
     r->b.lfo = r->m.lfo;
     r->b.time = blk_time;
-    r->b.bpm = (f32)iclamp(st.glo[0], 40, 240);
+    r->b.bpm = tempo();
 }
 
 /* The instrument's block() for a part, if what the instrument holds is another part's numbers or its
@@ -1589,7 +1718,7 @@ static const Blk *lay_set(int part, int lay)
     l->b.isr = ISR;
     l->b.lfo = l->m.lfo;
     l->b.time = blk_time;
-    l->b.bpm = (f32)iclamp(st.glo[0], 40, 240);
+    l->b.bpm = tempo();
     l->b.step = r->adv == blkno ? 0.0f : (f32)CTRL * ISR;
     r->adv = blkno;
     r->owner = 0;                                /* (what the instrument holds is no part's now) */
@@ -1696,8 +1825,15 @@ static void block(f32 *L, f32 *R)
                 voices[i].part = (uint8_t)live;
                 voices[i].lay = 0;
             }
-    bpm = (f32)iclamp(st.glo[0], 40, 240);
-    dticks = bpm * (96.0f / 60.0f) * dt;
+    ext_fr_blk = ext_fr;                         /* (this control block's start, in frames) */
+    ext_fr += CTRL;
+    if (ext_on && (f32)(ext_fr_blk - ext_last) > SR * 0.5f) {   /* (the clock stopped coming: h1's own tempo again) */
+        ext_on = 0;
+        ext_corr = 0.0f;
+    }
+    bpm = tempo();
+    dticks = bpm * (96.0f / 60.0f) * dt * (ext_on ? 1.0f + ext_corr : 1.0f);
+    ext_pub = ext_on ? ext_bpm_v : 0.0f;
     beat_out = fractf(beat_out + dticks * (1.0f / 96.0f));
 
     blk_time = run_time;
@@ -1713,11 +1849,15 @@ static void block(f32 *L, f32 *R)
     }
     ip = &st.ip[cur_i];                          /* (LAYERS: an event may have changed the instrument in hand) */
     live = live_part();
+    if (ext_on)
+        ext_ph += dticks;                        /* (the phase moves with the sequencers) */
     if (pending_i < 0) {
-        if (st.seq[0] == SEQ_STEP) step_tick(dticks);
-        else loop_tick(dticks);
+        f32 sdt = dticks + ext_catch;            /* (a Start from a clock that landed a moment ago: made up now) */
+        ext_catch = 0.0f;
+        if (st.seq[0] == SEQ_STEP) step_tick(sdt);
+        else loop_tick(sdt);
         free_tick(dticks);
-        arp_tick(ip, dticks);
+        arp_tick(ip, sdt);
     }
     clock_tick(dticks);                          /* (after the sequencers: a Start lands with its first notes) */
 
@@ -2073,6 +2213,9 @@ SMALL void eng_init(uint32_t sample_rate)
     rec_forget();
     loop_pos = 0.0f;
     clk_on = clk_run = clk_started = 0;         /* (the clock starts again with its first clock) */
+    ext_on = ext_start_due = 0;
+    ext_bpm_v = ext_corr = ext_catch = ext_ph = 0.0f;
+    ext_pub = 0.0f;
     clk_ph = 0.0f;
     loop_held[0] = loop_held[1] = loop_held[2] = loop_held[3] = 0;
     latched[0] = latched[1] = latched[2] = latched[3] = 0;

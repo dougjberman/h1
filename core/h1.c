@@ -44,6 +44,7 @@ SMALL void h1_init(uint32_t sample_rate)
     defaults();
     eng_init(sample_rate);
     ui_init();
+    midi_in_unpack();
 }
 
 void h1_frame(uint32_t now_ms) { ui_frame(now_ms); }
@@ -173,11 +174,13 @@ SMALL int h1_state_load(const void *blob, uint32_t size)
         }
         if (st.ip[i].algo >= NALGOS(i)) st.ip[i].algo = 0;
         if (st.ip[i].mix[IP_CUT] > 100) st.ip[i].mix[IP_CUT] = 0;           /* (not a volume: full, rather than an instrument gone quiet) */
+        midi_in_unpack();                        /* (the MIDI IN page's columns out of st.seq[7], clamped, and back) */
         for (pg = 1; pg < NPAGE; pg++)
             for (j = 0; j < 4; j++) {
                 uint8_t *v = page_value(pg, j);
                 *v = (uint8_t)iclamp(*v, page_param(pg, j)->min, page_param(pg, j)->max);
             }
+        midi_in_pack();
         st.inst = keep;
     }
     st.seq[0] &= 1;

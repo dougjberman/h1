@@ -15,6 +15,8 @@ out=app/build/host
 "$out/h1_host" tests/looppower.txt "$out"
 # Bluetooth MIDI: in, out beside USB, nothing echoed, nothing sent once the link goes
 "$out/h1_host" tests/ble.txt "$out"
+# the MIDI IN page's THRU: clock, Start and Stop passed on, never back where they came from
+"$out/h1_host" tests/clockin.txt "$out"
 # (that build has the second core, as the firmware does: the simulator runs its jobs at once, in order)
 # and the build without it: the same script
 FM1B_CPU2=0 ./build.sh --host
@@ -56,8 +58,12 @@ ASAN_OPTIONS=detect_leaks=0 build/h1midi
 "${CC:-cc}" -std=c99 -O1 -g -ffp-contract=off -fsanitize=address,undefined -fno-sanitize-recover=all -w \
     core/*.c tests/scales.c -o build/h1scales -lm
 ASAN_OPTIONS=detect_leaks=0 build/h1scales
+# the MIDI IN page: an incoming clock followed (tempo, steps on their clocks for two minutes), Start, Stop, NOTES
+"${CC:-cc}" -std=c99 -O1 -g -ffp-contract=off -fsanitize=address,undefined -fno-sanitize-recover=all -w \
+    core/*.c tests/clockin.c -o build/h1clockin -lm
+ASAN_OPTIONS=detect_leaks=0 build/h1clockin
 # (dougjberman's fork) the Bluetooth firmware leaves PLUNK out (H1_NO_PLUNK): the core's tests on fifteen instruments
-for t in knobs v022 ninth midi; do
+for t in knobs v022 ninth midi clockin; do
     "${CC:-cc}" -std=c99 -O1 -g -ffp-contract=off -fsanitize=address,undefined -fno-sanitize-recover=all -w \
         -DH1_NO_PLUNK=1 core/*.c tests/$t.c -o build/h1np_$t -lm
     ASAN_OPTIONS=detect_leaks=0 build/h1np_$t | tail -1 | sed 's/^/no PLUNK: /'

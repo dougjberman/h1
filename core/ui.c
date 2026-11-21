@@ -45,6 +45,9 @@ static const char *const O_CLICK[] = {"CLICK REC", "CLICK ON", "CLICK OFF"};
 static const char *const O_SEND[] = {"ALL", "LIVE", "OFF"};          /* MS_* */
 static const char *const O_CLOCK[] = {"OFF", "ON", "+START"};        /* MC_* */
 static const char *const O_BT[] = {"ON", "OFF"};
+static const char *const O_FOLLOW[] = {"OFF", "FOLLOW"};
+static const char *const O_NOTES_IN[] = {"ALL", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14",
+                                         "15", "16", "OFF"};   /* MI_NOTES: 0 every channel, 1..16, 17 none */
 
 /* in the order of the buttons that open them, reading the panel's two rows left to right */
 const PageDef pages[NPAGE] = {
@@ -66,11 +69,30 @@ const PageDef pages[NPAGE] = {
     /* HOME held: the out channel, what goes out, MIDI clock (and with +START, Start and Stop), Bluetooth */
     {"MIDI", {{"CHAN", PK_INT, 15, 0, 1, 0}, {"SEND", PK_ENUM, 2, 0, 0, O_SEND},
               {"CLOCK", PK_ENUM, 2, 0, 0, O_CLOCK}, {"BT", PK_ENUM, 1, 0, 0, O_BT}}},
+    /* SELECT from the MIDI page: an incoming clock followed, its Start and Stop, the notes taken, the clock passed on */
+    {"MIDI IN", {{"CLOCK", PK_ENUM, 1, 0, 0, O_FOLLOW}, {"START", PK_ENUM, 1, 0, 0, O_ONOFF},
+                 {"NOTES", PK_ENUM, 17, 0, 0, O_NOTES_IN}, {"THRU", PK_ENUM, 1, 0, 0, O_ONOFF}}},
 };
+
+/* the MIDI IN page's columns, packed into st.seq[7] (internal.h MI_*): CLOCK bit 0, START bit 1, THRU bit 2, NOTES
+ * bits 3..7 */
+uint8_t midi_in[4];
+SMALL void midi_in_unpack(void)
+{
+    midi_in[0] = (uint8_t)MI_FOLLOW();
+    midi_in[1] = (uint8_t)MI_START();
+    midi_in[2] = (uint8_t)MI_NOTES();
+    midi_in[3] = (uint8_t)MI_THRU();
+}
+SMALL void midi_in_pack(void)
+{
+    st.seq[7] = (uint8_t)((midi_in[0] & 1u) | (midi_in[1] & 1u) << 1 | (midi_in[3] & 1u) << 2 |
+                          (midi_in[2] <= MI_NOTES_OFF ? midi_in[2] : 0u) << 3);
+}
 static const ParamDef P_GRID = {"GRID", PK_ENUM, 2, 0, 0, O_GRID};
 
 /* where each page's button sits on the panel: column 0..5, row 0..1 */
-static const uint8_t PAGE_AT[NPAGE][2] = {{0, 1}, {0, 0}, {1, 0}, {2, 0}, {3, 0}, {5, 0}, {2, 1}, {3, 1}, {0, 1}};
+static const uint8_t PAGE_AT[NPAGE][2] = {{0, 1}, {0, 0}, {1, 0}, {2, 0}, {3, 0}, {5, 0}, {2, 1}, {3, 1}, {0, 1}, {0, 1}};
 
 const ParamDef *page_param(int pg, int i)
 {
@@ -91,6 +113,7 @@ uint8_t *page_value(int pg, int i)
     case PG_GLO: return &st.glo[i];
     case PG_SEQ: return &st.seq[i == 3 && st.seq[0] == SEQ_STEP ? 4 : i];
     case PG_MIDI: return &st.midi[i];
+    case PG_MIDI_IN: return &midi_in[i];
     default: return &KNOBS_NOW(st.inst)[i];
     }
 }
@@ -313,9 +336,34 @@ void h1_key(int key, int down)
     }
 }
 
+/* MIDI in. A clock, Start, Continue or Stop goes to the engine with how long ago it landed (the MIDI IN page decides
+ * what it does with them); notes and controllers only on the page's NOTES: every channel, one, or none. */
+void h1_midi_at(uint8_t status, uint8_t d1, uint8_t d2, uint32_t age_us)
+{
+    uint8_t type = status & 0xF0u;
+    uint32_t want = MI_NOTES();
+    if (status >= 0xF8u || status == 0xFAu || status == 0xFBu || status == 0xFCu) {
+        if (status == 0xF8u) eng_ext_post(EXT_CLOCK, age_us);
+        else if (status == 0xFAu) eng_ext_post(EXT_START, age_us);
+        else if (status == 0xFBu) eng_ext_post(EXT_CONT, age_us);
+        else if (status == 0xFCu) eng_ext_post(EXT_STOP, age_us);
+        return;
+    }
+    if (type < 0x80u || type >= 0xF0u || want == MI_NOTES_OFF || (want && (uint32_t)(status & 15u) != want - 1u))
+        return;
+    h1_midi(status, d1, d2);
+}
+int h1_midi_thru(void) { return (int)MI_THRU(); }
+
 void h1_midi(uint8_t status, uint8_t d1, uint8_t d2)
 {
     uint8_t type = status & 0xF0u;
+    if (status >= 0xF8u || status == 0xFAu || status == 0xFBu || status == 0xFCu || (type >= 0x80u && type < 0xF0u &&
+        (MI_NOTES() == MI_NOTES_OFF || (MI_NOTES() && (uint32_t)(status & 15u) != MI_NOTES() - 1u)))) {
+        if (status >= 0xF0u)
+            h1_midi_at(status, d1, d2, 0u);      /* (a port with no landing times: now) */
+        return;
+    }
     if (type == 0x90u && d2)
         eng_post_note(1, d1 & 127, d2 & 127, 1);             /* with its velocity */
     else if (type == 0x80u || type == 0x90u)
@@ -688,6 +736,8 @@ static APART void set_param(int i, int v)
     if (page == PG_MIDI && i <= 1)               /* the channel or what goes out: what went out is let go first */
         eng_midi_all_off();
     *q = (uint8_t)v;
+    if (page == PG_MIDI_IN)
+        midi_in_pack();                          /* (kept in st.seq[7]) */
     if (page == PG_KEYS && i == 3 && !v)
         eng_post(EV_UNLATCH, 0);
     mark_dirty();
@@ -1065,6 +1115,22 @@ static void draw_page(void)
     }
     if (page == PG_MIDI)                         /* where HUSH went when HOME's hold became this page */
         g_text(13.0f, 43.0f, "TAP HOME TWICE: HUSH", 8.0f, 1.0f, 0.5f * intro, 0);
+    if (page == PG_MIDI_IN) {                    /* what the clock in is doing */
+        f32 b = eng_ext_bpm();
+        if (!MI_FOLLOW())
+            put_s(buf, "NOT FOLLOWING A CLOCK");
+        else if (b <= 0.0f)
+            put_s(buf, "NO CLOCK COMING IN");
+        else {
+            int t10 = (int)(b * 10.0f + 0.5f);
+            char *e = put_s(buf, "FOLLOWING ");
+            e = put_i(e, t10 / 10);
+            *e++ = '.';
+            e = put_i(e, t10 % 10);
+            put_s(e, " BPM");
+        }
+        g_text(13.0f, 43.0f, buf, 8.0f, 1.0f, 0.5f * intro, 0);
+    }
     if (page == PG_SEQ) {
         /* The sequencer's buttons do three things held or paired, more than the line holds: they go by
          * as a marquee, still for a moment when the page opens, then round and round. */
@@ -1371,7 +1437,7 @@ uint32_t h1_key_leds(void)
 uint32_t h1_button_leds(void)
 {
     static const int8_t PAGE_BTN[NPAGE] = {H1_BTN_HOME, H1_BTN_FX, H1_BTN_SEL, H1_BTN_ENV, H1_BTN_LFO, H1_BTN_GLO, H1_BTN_ARP, H1_BTN_SEQ,
-                                           H1_BTN_HOME};   /* (the MIDI page: HOME's light, as its square) */
+                                           H1_BTN_HOME, H1_BTN_HOME};   /* (the MIDI pages: HOME's light, as their square) */
     uint32_t m = 0;
     int s = seq.mode == SEQ_LOOP ? seq.loop_state : LOOP_EMPTY, blink = fractf(tsec * 2.5f) < 0.5f;
     if (page != PG_HOME)

@@ -1,0 +1,45 @@
+# The MIDI IN page's THRU in fm1-base's host simulator: an incoming clock, Start and Stop passed on to the other
+# links, never back where they came from (app.c). (Following the clock itself: tests/clockin.c.)
+#   ./build.sh --host, then app/build/host/h1_host tests/clockin.txt app/build/host
+wait 1500
+ble connect
+wait 200
+# THRU off: nothing passed on
+midi TRS FA
+wait 50
+expect_no_out BLE FA
+expect_no_out USB FA
+out
+# HOME held, SELECT: MIDI IN; THRU on, CLOCK FOLLOW
+press HOME
+wait 900
+release HOME
+wait 100
+turn SELECT 1
+wait 100
+turn K4 1
+turn K1 1
+wait 100
+# from the TRS jack: on to Bluetooth and USB
+midi TRS FA
+wait 20
+midi TRS F8
+wait 20
+midi TRS FC
+wait 50
+expect_out BLE FA
+expect_out USB FA
+expect_out BLE F8
+expect_out USB F8
+expect_out BLE FC
+out
+# from Bluetooth: on to USB, not back to Bluetooth
+midi BLE FA
+wait 20
+midi BLE F8
+wait 50
+expect_out USB FA
+expect_no_out BLE FA
+expect_out USB F8
+expect_no_out BLE F8
+out

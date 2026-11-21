@@ -185,6 +185,28 @@ between them keeps your settings, except PLUNK's, which come back as new.
 | 4 | BT | ON, OFF | Bluetooth MIDI. Off, the radio is quiet. It stays as you left it through a power-off |
 
 Changing CHAN or SEND sends all-notes-off where notes went before, so nothing hangs on the old channel.
+
+**The MIDI IN page** (from the MIDI page, turn **SELECT**):
+
+| Knob | Setting | Values | What it does |
+|---|---|---|---|
+| 1 | CLOCK | OFF, FOLLOW | FOLLOW: h1 takes its tempo from an incoming MIDI clock (USB, the TRS jack or Bluetooth), and its loop, steps, arpeggiator and echo run at it. GLOBAL's tempo is left alone and comes back half a second after the clock stops. While following, h1 sends no clock of its own |
+| 2 | START | OFF, ON | ON: Start and Continue start the loop or the step pattern from the top on the next clock (beat one), Stop stops it |
+| 3 | NOTES | ALL, 1–16, OFF | Which incoming notes and controllers play h1: every channel (as before), one channel, or none (clock and transport only) |
+| 4 | THRU | OFF, ON | ON: an incoming clock, Start, Continue and Stop are passed on to USB and Bluetooth, never back where they came from |
+
+The line under the page's title says what the clock is doing: `FOLLOWING 120.0 BPM`, `NO CLOCK COMING IN`
+or `NOT FOLLOWING A CLOCK`.
+
+Two ways to use them:
+
+- **h1 as the master** (pedals following h1): MIDI page CLOCK ON (or +START), SEND OFF if they only want the
+  clock; MIDI IN CLOCK OFF. Over Bluetooth to a receiver such as a CME WIDI Jack, whose wired OUT feeds the pedals.
+- **h1 following a drum machine** (a room's master clock): MIDI IN CLOCK FOLLOW, START ON if you want its Start
+  and Stop, NOTES OFF so nobody else's notes play h1. Into the TRS jack (a Type A adapter) is the steadiest; over
+  Bluetooth works too, timed by the sender's own timestamps. With THRU ON h1 passes that clock on over Bluetooth,
+  so pedals behind a WIDI Jack follow the same master. If the WIDI Jack also passes its wired IN to its wired OUT
+  (its app's "Wired MIDI Thru"), leave THRU OFF, or the pedals get the clock twice.
 The clock goes out over USB and Bluetooth, ahead of the notes when the queue is busy.
 
 ## Hotkeys

@@ -24,6 +24,10 @@ cpu2_fallback = true
 ble = true
 ble_stack = "own"
 ble_diag = false
+# an incoming clock followed by when it was sent (the MIDI IN page): Bluetooth MIDI by its sender's own timestamps,
+# and USB and the TRS jack stamped where they land (within 0.05 ms) instead of when the frame reads them
+ble_midi_time = true
+midi_stamp = true
 # OCT- and OCT+ held: the USB port as a host for a USB-MIDI keyboard or synth (powered hub or adapter: the FM-1 gives
 # the port no power). Boot is always a device, so a computer can always reach it after a restart.
 usb_host = true

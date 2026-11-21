@@ -106,10 +106,20 @@ static void midi_in(void)
     uint32_t pkt;
     int port;
     while (plat_midi_in(&pkt, &port)) {
-        if (((pkt >> 8) & 0xF0u) == 0xB0u && ((pkt >> 16) & 0xFFu) == 119u)
+        uint8_t status = (uint8_t)(pkt >> 8);
+        /* how long ago it landed (fm1.toml midi_stamp: within 0.05 ms over USB and TRS; ble_midi_time: the sender's
+         * own time over Bluetooth), so a clock is followed by when it was sent and not by when the frame read it */
+        int32_t age = (int32_t)(plat_ticks24() - plat_midi_in_t24());
+        uint32_t age_us = age > 0 ? (uint32_t)age / PLAT_TICKS_PER_US : 0u;
+        if (h1_midi_thru() && (status == 0xF8u || status == 0xFAu || status == 0xFBu || status == 0xFCu)) {
+            uint32_t to = (TO_USB | TO_BLE) & ~plat_midi_in_from();   /* THRU: on, never back where it came from */
+            if (plat_midi_out_room(to))
+                plat_midi_send((pkt & ~0xFFu) | 0x0Fu, to);   /* (cable 0, CIN F: a one-byte real-time message) */
+        }
+        if ((status & 0xF0u) == 0xB0u && ((pkt >> 16) & 0xFFu) == 119u)
             pf_ask = 1;                                     /* (see "how long things take") */
         else
-            h1_midi((uint8_t)(pkt >> 8), (uint8_t)(pkt >> 16), (uint8_t)(pkt >> 24));
+            h1_midi_at(status, (uint8_t)(pkt >> 16), (uint8_t)(pkt >> 24), age_us);
     }
 }
 

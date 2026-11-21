@@ -2,6 +2,11 @@
 
 ## Unreleased (fork: Bluetooth MIDI)
 
+- (dougjberman's build) The MIDI IN page, after the MIDI page: CLOCK (follow an incoming clock's tempo), START
+  (follow Start, Continue, Stop), NOTES (ALL, a channel, OFF) and THRU (pass the clock and transport on). Kept in
+  st.seq[7], the state's one unused byte, so 0.3.0 still reads the state. Clocks are timed where they land
+  (midi_stamp) or by their sender (ble_midi_time); a step pattern follows its clock to within a millisecond for as
+  long as it runs (tests/clockin.c).
 - (dougjberman's build, on 0.3.0) Two firmware files: `h1.fwsc` with Bluetooth MIDI and without PLUNK (0.3.0 has
   room for one or the other), `h1-usb.fwsc` without Bluetooth and with PLUNK.
 - (dougjberman's build) Eight more scales on the KEYS page: MIXO, LYDIAN, PHRYG, LOCRIA, ARABIC (double

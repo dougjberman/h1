@@ -252,9 +252,22 @@ extern const InstDef *const insts[NINST];
 static inline int part_ok(uint32_t p) { return PART_SOME(p) && PART_ALGO(p) < NALGOS(PART_INST(p)); }
 
 /* ---- settings pages ------------------------------------------------------------------- */
-enum { PG_HOME, PG_FX, PG_KEYS, PG_ENV, PG_LFO, PG_GLO, PG_ARP, PG_SEQ, PG_MIDI, NPAGE };
+enum { PG_HOME, PG_FX, PG_KEYS, PG_ENV, PG_LFO, PG_GLO, PG_ARP, PG_SEQ, PG_MIDI, PG_MIDI_IN, NPAGE };
 enum { MS_ALL, MS_LIVE, MS_OFF };                 /* st.midi[1]: what goes out */
 enum { MC_OFF, MC_CLOCK, MC_START };              /* st.midi[2]: MIDI clock out, and with MC_START Start/Stop */
+/* The MIDI IN page (SELECT from the MIDI page), packed into st.seq[7], the one byte of the state nothing else uses
+ * (0.3.0 saves it as zero: no following, every note, no thru, which is h1 as it was, and 0.3.0 reads a state with it
+ * set without minding). Bit 0 CLOCK: follow an incoming MIDI clock. Bit 1 START: follow Start, Stop and Continue.
+ * Bit 2 THRU: pass incoming clock, Start, Stop and Continue on (app.c). Bits 3..7 NOTES: 0 every channel, 1..16 that
+ * channel, 17 none. The page edits midi_in[] (ui.c), packed back at once. */
+#define MI_FOLLOW() (st.seq[7] & 1u)
+#define MI_START() (st.seq[7] >> 1 & 1u)
+#define MI_THRU() (st.seq[7] >> 2 & 1u)
+#define MI_NOTES() (st.seq[7] >> 3 <= 17u ? st.seq[7] >> 3 : 0u)
+#define MI_NOTES_OFF 17u
+extern uint8_t midi_in[4];                       /* the page's four columns: CLOCK, START, NOTES, THRU */
+void midi_in_unpack(void);                       /* st.seq[7] -> midi_in[] */
+void midi_in_pack(void);                         /* midi_in[] -> st.seq[7] */
 enum { PK_PCT, PK_ENUM, PK_INT };
 
 typedef struct ParamDef {
@@ -281,7 +294,9 @@ enum { EV_NOTE_ON = 1, EV_NOTE_OFF, EV_PANIC, EV_INST, EV_UNLATCH, EV_REC, EV_PL
        EV_STEP_MOVE,             /* the step cursor: a = detents + 128 */
        EV_STEP_REST,             /* empty the step under the cursor and move on */
        EV_SEQ_MODE,              /* loop <-> step: stop whichever was running */
-       EV_CUE };                 /* a: one of the cues below */
+       EV_CUE,                   /* a: one of the cues below */
+       EV_EXT };                 /* MIDI clock and transport in (eng_ext_post): a = EXT_*, bits 16..31 its age, 8 us */
+enum { EXT_CLOCK = 1, EXT_START, EXT_CONT, EXT_STOP };
 enum { LOOP_EMPTY, LOOP_IDLE, LOOP_ARMED, LOOP_REC, LOOP_PLAY, LOOP_DUB };
 enum { SEQ_LOOP, SEQ_STEP };
 enum { CLICK_REC, CLICK_ON, CLICK_OFF };       /* the metronome: while recording, always, never */
@@ -327,6 +342,8 @@ void eng_post_note(int on, int note, int vel, int from_midi);   /* a note, with 
 extern void (*eng_midi_fn)(uint8_t status, uint8_t d1, uint8_t d2);
 void eng_midi_cc(uint8_t cc, uint8_t v);         /* a CC out on the MIDI page's channel, unless SEND is OFF */
 void eng_midi_all_off(void);                     /* CC 123 out on the page's channel (before the channel or SEND changes) */
+void eng_ext_post(int what, uint32_t age_us);    /* main loop: a clock (EXT_CLOCK) or Start, Continue, Stop came in age_us ago */
+f32 eng_ext_bpm(void);                           /* main loop: the tempo followed from an incoming clock, 0 while none */
 /* the loop, saved apart from the state (h1_loop): main loop */
 const uint8_t *eng_loop_blob(uint32_t *size);    /* the loop as saved, in place (h1_loop) */
 int eng_loop_load(const uint8_t *b, uint32_t n);
