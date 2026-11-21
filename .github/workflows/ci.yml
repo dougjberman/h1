@@ -83,37 +83,34 @@ jobs:
             echo "::notice title=${name} (exit ${rc})::${line}"
           }
           cp app/fm1.toml /tmp/fm1.toml
-          report "ble + usb_host" ./build.sh
-          sed -i 's/^usb_host = true/usb_host = false/' app/fm1.toml
-          report "ble, no usb_host" ./build.sh
+          variant() {   # name, then sed expressions for fm1.toml
+            name="$1"; shift
+            cp /tmp/fm1.toml app/fm1.toml
+            for e in "$@"; do sed -i "$e" app/fm1.toml; done
+            report "$name" ./build.sh
+          }
+          variant "A ble+usbh, unity -Oz" 's/^ram_layout = "packed"/unity_opt = "z"\nram_layout = "packed"/'
+          variant "B ble+usbh, ui.c h1.c at -Os" 's#^o2 = \["../core/\*.c"\]#o2 = ["../core/synth.c", "../core/fx.c", "../core/smp.c", "../core/inst_*.c", "../core/gfx.c", "../core/plunk*.c"]#'
+          variant "C ble+usbh, A and B" 's/^ram_layout = "packed"/unity_opt = "z"\nram_layout = "packed"/' 's#^o2 = \["../core/\*.c"\]#o2 = ["../core/synth.c", "../core/fx.c", "../core/smp.c", "../core/inst_*.c", "../core/gfx.c", "../core/plunk*.c"]#'
+          variant "D ble+usbh, unity -Oz, only synth fx smp at -O2" 's/^ram_layout = "packed"/unity_opt = "z"\nram_layout = "packed"/' 's#^o2 = \["../core/\*.c"\]#o2 = ["../core/synth.c", "../core/fx.c", "../core/smp.c"]#'
           cp /tmp/fm1.toml app/fm1.toml
-          report "no ble (usb_host)" ./build.sh --no-ble
-          elf=app/build/h1-usb.elf
-          if [ -f "$elf" ]; then
-            "$JIELI_TOOLCHAIN/common/bin/objdump" -t "$elf" > /tmp/syms.txt
-            python3 - <<'PY'
+          report "base: ble+usbh" ./build.sh
+          ls app/build | tr '\n' ' ' | sed 's/^/::notice title=build files::/'; echo
+          elf=$(ls app/build/*.elf | head -1)
+          "$JIELI_TOOLCHAIN/common/bin/objdump" -t "$elf" > /tmp/syms.txt 2>&1
+          python3 - <<'PY'
           import re, collections
           rows = []
           for l in open('/tmp/syms.txt'):
-              m = re.match(r'^([0-9a-f]{8})\s+.{7}\s+(\S+)\s+([0-9a-f]{8})\s+(\S+)$', l.strip())
-              if m and m.group(2) in ('.text', '.rodata', '.data', '.ram_text') and int(m.group(3), 16) > 0:
-                  rows.append((int(m.group(3), 16), m.group(2), m.group(4)))
+              p = l.split()
+              if len(p) >= 5 and re.fullmatch(r'[0-9a-f]{8}', p[-2]) and p[-3].startswith('.'):
+                  n = int(p[-2], 16)
+                  if n and p[-3] in ('.text', '.rodata', '.data', '.ram_text', '.rodata.str1.1'):
+                      rows.append((n, p[-3], p[-1]))
           rows.sort(reverse=True)
-          top = '%0A'.join(f'{n} {sec} {name}' for n, sec, name in rows[:40])
-          print(f'::notice title=largest symbols (no ble)::{top}')
-          groups = collections.Counter()
-          for n, sec, name in rows:
-              k = ('smp' if name.startswith(('smp_', 'SMP', 'bank')) else
-                   'plunk' if 'plunk' in name.lower() else
-                   'tilt' if 'tilt' in name.lower() else
-                   'usbh' if 'usbh' in name.lower() or 'usb_host' in name.lower() else
-                   'font' if 'font' in name.lower() or 'glyph' in name.lower() else
-                   name.split('_')[0])
-              groups[k] += n
-          g = '%0A'.join(f'{n} {k}' for k, n in groups.most_common(40))
-          print(f'::notice title=bytes by name prefix (no ble)::{g}')
+          print('::notice title=largest symbols (%d parsed)::' % len(rows) + '%0A'.join(f'{n} {sec} {name}' for n, sec, name in rows[:45]))
+          print('::notice title=objdump head::' + '%0A'.join(l.rstrip() for l in open('/tmp/syms.txt').readlines()[:6]))
           PY
-          fi
           true
       - name: Build the firmware (a development build)
         run: ./build.sh
