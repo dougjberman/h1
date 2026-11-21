@@ -170,6 +170,11 @@ name when it connects. The FM-1 gives the port no power, so the keyboard needs i
 a powered hub or a powered OTG adapter. While it's a host there's no computer: no USB audio and no MIDI
 to a DAW. Hold both again to go back. It's never kept, so the FM-1 always starts as a USB device.
 
+**This fork's two firmware files.** h1 0.3.0 has room for Bluetooth MIDI or for PLUNK's recorded drum
+kits, not both, so each build makes two: `h1.fwsc` with Bluetooth MIDI and fifteen instruments (no PLUNK),
+and `h1-usb.fwsc` without Bluetooth and with all sixteen. Everything else is the same in both. Switching
+between them keeps your settings, except PLUNK's, which come back as new.
+
 **The MIDI page** (hold **HOME**):
 
 | Knob | Setting | Values | What it does |

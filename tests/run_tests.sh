@@ -56,6 +56,12 @@ ASAN_OPTIONS=detect_leaks=0 build/h1midi
 "${CC:-cc}" -std=c99 -O1 -g -ffp-contract=off -fsanitize=address,undefined -fno-sanitize-recover=all -w \
     core/*.c tests/scales.c -o build/h1scales -lm
 ASAN_OPTIONS=detect_leaks=0 build/h1scales
+# (dougjberman's fork) the Bluetooth firmware leaves PLUNK out (H1_NO_PLUNK): the core's tests on fifteen instruments
+for t in knobs v022 ninth midi; do
+    "${CC:-cc}" -std=c99 -O1 -g -ffp-contract=off -fsanitize=address,undefined -fno-sanitize-recover=all -w \
+        -DH1_NO_PLUNK=1 core/*.c tests/$t.c -o build/h1np_$t -lm
+    ASAN_OPTIONS=detect_leaks=0 build/h1np_$t | tail -1 | sed 's/^/no PLUNK: /'
+done
 # two cores sound the same as one, to the bit (tests/cores.c: the second core is a thread)
 "${CC:-cc}" -std=c11 -O2 -ffp-contract=off -w core/*.c tests/cores.c -o build/h1cores -lm -lpthread
 build/h1cores > build/cores1.txt

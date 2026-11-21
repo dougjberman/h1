@@ -73,6 +73,13 @@ jobs:
           echo "AC79_SDK=$HOME/fw-AC79_AIoT_SDK" >> "$GITHUB_ENV"
       - name: Build the firmware (a development build)
         run: ./build.sh
+      # (dougjberman's fork) the same without Bluetooth, with PLUNK: h1-usb.fwsc beside h1.fwsc
+      - name: Build the firmware without Bluetooth (h1-usb.fwsc)
+        run: |
+          cp app/build/h1.fwsc /tmp/h1.fwsc && cp app/build/h1.bin /tmp/h1.bin && cp app/build/h1.elf /tmp/h1.elf
+          ./build.sh --no-ble 2>&1 | tee /tmp/usb.log
+          grep -E 'image [0-9]+ B' /tmp/usb.log | sed 's/^/::notice title=h1-usb.fwsc::/'
+          cp /tmp/h1.fwsc /tmp/h1.bin /tmp/h1.elf app/build/
       # for reading a crash record: its pc and rets are addresses in this table
       - name: Hashes, and where every function is
         run: |
@@ -85,6 +92,7 @@ jobs:
           name: h1-dev-build
           path: |
             app/build/h1.fwsc
+            app/build/h1-usb.fwsc
             app/build/h1.bin
             app/build/h1.elf
             app/build/h1.dis

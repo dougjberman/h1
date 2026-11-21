@@ -2,6 +2,8 @@
 
 ## Unreleased (fork: Bluetooth MIDI)
 
+- (dougjberman's build, on 0.3.0) Two firmware files: `h1.fwsc` with Bluetooth MIDI and without PLUNK (0.3.0 has
+  room for one or the other), `h1-usb.fwsc` without Bluetooth and with PLUNK.
 - (dougjberman's build) Eight more scales on the KEYS page: MIXO, LYDIAN, PHRYG, LOCRIA, ARABIC (double
   harmonic), HARMIN, MELMIN and HIRAJ (Hirajoshi), after the first eight, so a saved scale keeps its number.
 - Bluetooth MIDI in and out with a computer or a phone, on fm1-base's own Bluetooth stack (MPL-2.0, no

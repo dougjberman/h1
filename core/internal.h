@@ -8,7 +8,20 @@
 #define NVOICE 8
 #define NSTEP 64                 /* the step sequencer's pattern, at most */
 #define NSNOTE 8                 /* notes a step holds, at most */
+/* (dougjberman's fork) The Bluetooth firmware leaves PLUNK out: 0.3.0 has room for Bluetooth MIDI or for PLUNK's
+ * recorded kits, not both. Only the device's Bluetooth build (H1_DEVICE, FM1B_BLE); the USB-only firmware
+ * (./build.sh --no-ble, h1-usb.fwsc), the simulators and the tests keep all sixteen. PLUNK is the last instrument,
+ * so no other moves. -DH1_NO_PLUNK=1 builds it so anywhere (tests/run_tests.sh does, once). */
+#if !defined(H1_NO_PLUNK) && defined(H1_DEVICE) && defined(FM1B_BLE)
+#if FM1B_BLE
+#define H1_NO_PLUNK 1
+#endif
+#endif
+#if defined(H1_NO_PLUNK) && H1_NO_PLUNK
+#define NINST 15
+#else
 #define NINST 16
+#endif
 #define NALGO 9                  /* algorithms an instrument may have: eight each, and LAVA a ninth (HOOVER) */
 #define NLAYER 16                /* recorded layers, each with its own settings */
 #define NLEV 2048                /* the loop's events, a note-on and a note-off a note, across every layer */
